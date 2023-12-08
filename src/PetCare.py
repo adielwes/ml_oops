@@ -1,11 +1,14 @@
-# from dvclive.keras import DvcLiveCallback
 from tensorflow.keras import layers, Sequential, optimizers
+from dvclive import Live
+from dvclive.keras import DVCLiveCallback
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import pathlib
+from dvc.api import params_show
 
 
 class Training:
-   def __init__(self, params):
+    def __init__(self, dvclive, params):
+        self.dvclive = dvclive
         self.params = params
         self.model_filepath = params['model_filepath']
         self.batch_size = params['batch_size']
@@ -20,7 +23,6 @@ class Training:
         )
 
     def build_model(self):
-
         self.model = Sequential([
             layers.Conv2D(6, (5, 5), activation='relu', input_shape=self.hwc),
             layers.MaxPooling2D((2, 2)),
@@ -63,7 +65,7 @@ class Training:
             batch_size=self.batch_size
         )
 
-        val_datagen = ImageDataGenerator(rescale=1.0/255.0)
+        val_datagen = ImageDataGenerator(rescale=1.0 / 255.0)
         val_ds = val_datagen.flow_from_directory(
             './ds/valid',
             target_size=self.hw,
@@ -83,27 +85,29 @@ class Training:
             validation_steps=val_ds.samples // self.batch_size,
             epochs=self.params['epochs'],
             verbose=self.params['verbose'],
+            callbacks=[DVCLiveCallback(self.dvclive)]
         )
 
         return self
 
     def save_model(self):
         pathlib.Path(self.model_filepath).unlink(missing_ok=True)
+
         self.model.save(self.model_filepath)
+
+        self.dvclive.log_artifact(
+            self.model_filepath,
+            type='model',
+            desc='model',
+            name='model',
+        )
 
 
 def main():
-    params = {
-        "input_height": 224,
-        "input_width": 224,
-        "input_channels": 3,
-        "batch_size": 64,
-        "epochs": 10,
-        "verbose": 1,
-        "model_filepath": "./model.keras",
-    }
+    params = params_show()
 
-    Training(params).build_model().train().save_model()
+    with Live() as dvclive:
+        Training(dvclive, params).build_model().train().save_model()
 
 
 if __name__ == '__main__':

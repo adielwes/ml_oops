@@ -1,0 +1,15 @@
+schema: '2.0'
+stages:
+  train:
+    cmd: python src/PetCare.py
+    deps:
+    - path: ds
+      hash: md5
+      md5: 884b9a404e0954f1592a23ca797dcee0.dir
+      size: 229065939
+      nfiles: 10019
+    - path: src
+      hash: md5
+      md5: 921067444b8aebf4476b2f23ee8f6b7e.dir
+      size: 3275
+      nfiles: 1
